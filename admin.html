@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Diagnóstico</title>
+    <style>
+        :root {
+            --primary-color: #007BFF;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --background-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--surface-color);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 1rem;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+        }
+
+        header p {
+            color: var(--secondary-color);
+            margin: 0;
+        }
+
+        .admin-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        input[type="password"], input[type="url"] {
+            padding: 12px;
+            font-size: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            transition: border-color 0.3s;
+            width: 100%;
+        }
+
+        input[type="password"]:focus, input[type="url"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 48px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .feedback {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 1rem;
+            border: 2px solid;
+            font-weight: 500;
+            display: none;
+        }
+
+        .feedback.success {
+            background-color: #d4edda;
+            border-color: var(--success-color);
+            color: #155724;
+        }
+
+        .feedback.error {
+            background-color: #f8d7da;
+            border-color: var(--danger-color);
+            color: #721c24;
+        }
+
+        .feedback.loading {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+
+        .feedback.warning {
+            background-color: #fff3cd;
+            border-color: var(--warning-color);
+            color: #856404;
+        }
+
+        .debug-info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .debug-info h3 {
+            margin-top: 0;
+            color: var(--secondary-color);
+        }
+
+        .debug-item {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .config-section {
+            background-color: #fff3cd;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--warning-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .config-section h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+
+        .config-item {
+            margin: 0.5rem 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background-color: var(--success-color);
+        }
+
+        .status-offline {
+            background-color: var(--danger-color);
+        }
+
+        .status-unknown {
+            background-color: var(--secondary-color);
+        }
+
+        .url-input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        .url-input-group input {
+            flex: 1;
+        }
+
+        .url-input-group button {
+            min-width: auto;
+            padding: 12px 16px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+                margin: 10px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                min-width: 100%;
+            }
+
+            .url-input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Panel de Administración</h1>
+            <p>Diagnóstico y actualización de datos con verificación detallada</p>
+        </header>
+
+        <div class="config-section">
+            <h3>⚙️ Configuración Actual</h3>
+            <div class="config-item">
+                <strong>URL del Script:</strong> <span id="current-url">Cargando...</span>
+            </div>
+            <div class="config-item">
+                <strong>Estado del Script:</strong> 
+                <span class="status-indicator status-unknown"></span>
+                <span id="script-status">Verificando...</span>
+            </div>
+        </div>
+
+        <div class="admin-panel">
+            <div class="control-group">
+                <label for="script-url">🔗 URL del Script de Google Apps:</label>
+                <div class="url-input-group">
+                    <input type="url" id="script-url" placeholder="https://script.google.com/macros/s/...">
+                    <button id="update-url-btn" class="btn-success">✅ Usar</button>
+                </div>
+                <small style="color: var(--secondary-color); margin-top: 0.5rem;">
+                    Si el script no responde, pega aquí la nueva URL desplegada
+                </small>
+            </div>
+
+            <div class="control-group">
+                <label for="password">🔐 Contraseña de Administrador:</label>
+                <input type="password" id="password" placeholder="Ingresa la contraseña única">
+            </div>
+
+            <div class="button-group">
+                <button id="test-connection-btn" class="btn-secondary">🔍 Probar Conexión</button>
+                <button id="force-update-btn" class="btn-primary">🔄 Forzar Actualización</button>
+                <button id="debug-btn" class="btn-warning">🐛 Diagnóstico Completo</button>
+            </div>
+
+            <div id="feedback-message" class="feedback"></div>
+        </div>
+
+        <div class="debug-info">
+            <h3>📊 Información de Diagnóstico</h3>
+            <div id="debug-content">
+                <p>Haz clic en "Diagnóstico Completo" para obtener información detallada.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ CONFIGURACIÓN INICIAL - Se puede modificar desde la interfaz
+        let APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznfAPDO0vy45qmDeD7od-3SOqnspC_dquWSwG_CfxXC-j0lZzSG-dxhB_5qZK2O_j5QQ/exec';
+        const ADMIN_PASSWORD = 'Narkis2025';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const updateButton = document.getElementById('force-update-btn');
+            const testButton = document.getElementById('test-connection-btn');
+            const debugButton = document.getElementById('debug-btn');
+            const updateUrlButton = document.getElementById('update-url-btn');
+            const passwordInput = document.getElementById('password');
+            const scriptUrlInput = document.getElementById('script-url');
+            const feedbackMessage = document.getElementById('feedback-message');
+            const currentUrlSpan = document.getElementById('current-url');
+            const scriptStatusSpan = document.getElementById('script-status');
+            const debugContent = document.getElementById('debug-content');
+
+            // Mostrar URL actual
+            currentUrlSpan.textContent = APPS_SCRIPT_URL;
+            scriptUrlInput.value = APPS_SCRIPT_URL;
+
+            // Verificar estado del script al cargar
+            checkScriptStatus();
+
+            // Event Listeners
+            testButton.addEventListener('click', testConnection);
+            updateButton.addEventListener('click', forceUpdate);
+            debugButton.addEventListener('click', runDiagnostics);
+            updateUrlButton.addEventListener('click', updateScriptUrl);
+
+            function updateScriptUrl() {
+                const newUrl = scriptUrlInput.value.trim();
+                if (!newUrl) {
+                    displayFeedback('❌ Por favor ingresa una URL válida', 'error');
+                    return;
+                }
+
+                if (!newUrl.includes('script.google.com/macros/s/')) {
+                    displayFeedback('❌ La URL no parece ser de Google Apps Script', 'error');
+                    return;
+                }
+
+                APPS_SCRIPT_URL = newUrl;
+                currentUrlSpan.textContent = newUrl;
+                displayFeedback('✅ URL actualizada correctamente', 'success');
+                
+                // Verificar nueva URL automáticamente
+                setTimeout(checkScriptStatus, 1000);
+            }
+
+            async function checkScriptStatus() {
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL + '?action=ping&t=' + new Date().getTime(), {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        updateScriptStatus(true, `Online - ${result.message || 'Script accesible'}`);
+                    } else {
+                        updateScriptStatus(false, `Error HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    updateScriptStatus(false, `Error: ${error.message}`);
+                }
+            }
+
+            function updateScriptStatus(isOnline, message) {
+                const indicator = document.querySelector('.status-indicator');
+                indicator.className = `status-indicator ${isOnline ? 'status-online' : 'status-offline'}`;
+                scriptStatusSpan.textContent = message;
+            }
+
+            async function testConnection() {
+                if (passwordInput.value !== ADMIN_PASSWORD) {
+                    displayFeedback('❌ Contraseña incorrecta para prueba de conexión', 'error');
+                    return;
+                }
+
+                displayFeedback('🔍 Probando conexión...', 'loading');
+                testButton.disabled = true;
+
+                const testResults = [];
+
+                try {
+                    // Prueba 1: Ping básico
+                    testResults.push('✅ Iniciando pruebas de conexión...');
+                    
+                    const startTime = Date.now();
+                    const response = await fetch(APPS_SCRIPT_URL + '?action=ping&t=' + new Date().getTime(), {
+                        method: 'GET',
+                        mode: 'cors',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const endTime = Date.now();
+
+                    testResults.push(`📡 Respuesta recibida en ${endTime - startTime}ms`);
+                    testResults.push(`🌐 Status HTTP: ${response.status} ${response.statusText}`);
+
+                    if (response.ok) {
+                        const responseText = await response.text();
+                        testResults.push(`📄 Contenido recibido: ${responseText.substring(0, 200)}...`);
+                        
+                        try {
+                            const jsonData = JSON.parse(responseText);
+                            testResults.push(`✅ JSON válido recibido`);
+                            testResults.push(`🔍 Estructura: ${JSON.stringify(jsonData, null, 2)}`);
+                            
+                            // Prueba adicional: obtener datos
+                            const dataTest = await fetch(APPS_SCRIPT_URL + '?action=getData&t=' + new Date().getTime());
+                            if (dataTest.ok) {
+                                const dataResult = await dataTest.json();
+                                testResults.push(`📊 Datos disponibles: ${dataResult.recordCount || 0} registros`);
+                            }
+                            
+                        } catch (parseError) {
+                            testResults.push(`⚠️ La respuesta no es JSON válido: ${parseError.message}`);
+                        }
+
+                        displayFeedback('✅ Conexión exitosa - El script está funcionando', 'success');
+                        updateScriptStatus(true, 'Online y funcionando');
+                    } else {
+                        testResults.push(`❌ Error HTTP: ${response.status} ${response.statusText}`);
+                        displayFeedback(`❌ Error de conexión: HTTP ${response.status}`, 'error');
+                        updateScriptStatus(false, `HTTP ${response.status}`);
+                    }
+
+                } catch (error) {
+                    testResults.push(`❌ Error de conexión: ${error.message}`);
+                    testResults.push(`🔧 Tipo de error: ${error.name}`);
+                    
+                    displayFeedback(`❌ Error de conexión: ${error.message}`, 'error');
+                    updateScriptStatus(false, error.message);
+                }
+
+                // Mostrar resultados en debug
+                debugContent.innerHTML = `
+                    <h4>🔍 Resultados de Prueba de Conexión</h4>
+                    ${testResults.map(result => `<div class="debug-item">${result}</div>`).join('')}
+                `;
+
+                testButton.disabled = false;
+            }
+
+            async function forceUpdate() {
+                if (passwordInput.value !== ADMIN_PASSWORD) {
+                    displayFeedback('❌ Contraseña incorrecta', 'error');
+                    return;
+                }
+
+                displayFeedback('🔄 Actualizando datos, por favor espera...', 'loading');
+                updateButton.disabled = true;
+
+                try {
+                    const startTime = Date.now();
+                    
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'cors',
+                        redirect: 'follow', // <-- ¡Añade esta línea!
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: 'update',
+                            password: ADMIN_PASSWORD,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+
+                    const endTime = Date.now();
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const responseText = await response.text();
+                    
+                    try {
+                        const result = JSON.parse(responseText);
+                        
+                        if (result.status === 'success') {
+                            displayFeedback(`✅ Actualización exitosa (${endTime - startTime}ms) - ${result.recordCount} registros`, 'success');
+                            updateScriptStatus(true, 'Actualizado exitosamente');
+                            
+                            // Mostrar información adicional
+                            debugContent.innerHTML = `
+                                <h4>✅ Última Actualización Exitosa</h4>
+                                <div class="debug-item">🕒 Timestamp: ${result.timestamp}</div>
+                                <div class="debug-item">📊 Registros procesados: ${result.recordCount}</div>
+                                <div class="debug-item">📋 Headers: ${result.headers ? result.headers.join(', ') : 'No disponible'}</div>
+                                <div class="debug-item">🔗 Archivo: ${result.fileUrl || 'URL no disponible'}</div>
+                            `;
+                        } else {
+                            throw new Error(result.message || 'Error desconocido en el script');
+                        }
+                    } catch (parseError) {
+                        // Si no es JSON, mostrar la respuesta tal como viene
+                        if (responseText.includes('success') || responseText.includes('actualizado')) {
+                            displayFeedback(`✅ Actualización completada (${endTime - startTime}ms)`, 'success');
+                        } else {
+                            displayFeedback(`⚠️ Respuesta inesperada del servidor: ${responseText.substring(0, 200)}`, 'warning');
+                        }
+                    }
+
+                } catch (error) {
+                    displayFeedback(`❌ Error en la actualización: ${error.message}`, 'error');
+                    updateScriptStatus(false, error.message);
+                } finally {
+                    updateButton.disabled = false;
+                }
+            }
+
+            async function runDiagnostics() {
+                displayFeedback('🐛 Ejecutando diagnóstico completo...', 'loading');
+                debugButton.disabled = true;
+
+                const diagnostics = [];
+
+                try {
+                    // Información del navegador
+                    diagnostics.push(`🌐 Navegador: ${navigator.userAgent}`);
+                    diagnostics.push(`📍 URL actual: ${window.location.href}`);
+                    diagnostics.push(`🕒 Timestamp: ${new Date().toISOString()}`);
+                    diagnostics.push(`🔧 Configuración del script: ${APPS_SCRIPT_URL}`);
+                    
+                    // Verificación de CORS
+                    diagnostics.push(`🔒 Modo CORS: Habilitado`);
+                    
+                    // Prueba de red general
+                    try {
+                        const networkTest = await fetch('https://httpbin.org/get');
+                        diagnostics.push(`🌍 Conectividad general: ✅ OK (${networkTest.status})`);
+                    } catch (netError) {
+                        diagnostics.push(`🌍 Conectividad general: ❌ Error (${netError.message})`);
+                    }
+
+                    // Prueba específica del script - Ping
+                    try {
+                        const pingTest = await fetch(APPS_SCRIPT_URL + '?action=ping&t=' + new Date().getTime());
+                        diagnostics.push(`📜 Script Ping: ✅ OK (${pingTest.status})`);
+                        
+                        if (pingTest.ok) {
+                            const pingResponse = await pingTest.json();
+                            diagnostics.push(`📋 Respuesta Ping: ${JSON.stringify(pingResponse)}`);
+                        }
+                    } catch (scriptError) {
+                        diagnostics.push(`📜 Script Ping: ❌ Error (${scriptError.message})`);
+                    }
+
+                    // Prueba de obtención de datos
+                    try {
+                        const dataTest = await fetch(APPS_SCRIPT_URL + '?action=getData&t=' + new Date().getTime());
+                        diagnostics.push(`📊 Datos del script: ✅ OK (${dataTest.status})`);
+                        
+                        if (dataTest.ok) {
+                            const dataResponse = await dataTest.json();
+                            diagnostics.push(`📈 Registros disponibles: ${dataResponse.recordCount || 0}`);
+                            diagnostics.push(`📋 Headers: ${dataResponse.headers ? dataResponse.headers.join(', ') : 'No disponible'}`);
+                        }
+                    } catch (dataError) {
+                        diagnostics.push(`📊 Datos del script: ❌ Error (${dataError.message})`);
+                    }
+
+                    // Verificación de la configuración
+                    diagnostics.push(`🔐 Contraseña configurada: ${ADMIN_PASSWORD ? '✅ Sí' : '❌ No'}`);
+                    diagnostics.push(`🔗 URL válida: ${APPS_SCRIPT_URL.startsWith('https://script.google.com') ? '✅ Sí' : '❌ No'}`);
+
+                    displayFeedback('✅ Diagnóstico completado', 'success');
+
+                } catch (error) {
+                    diagnostics.push(`❌ Error durante diagnóstico: ${error.message}`);
+                    displayFeedback(`❌ Error en diagnóstico: ${error.message}`, 'error');
+                }
+
+                // Mostrar resultados
+                debugContent.innerHTML = `
+                    <h4>🐛 Diagnóstico Completo</h4>
+                    ${diagnostics.map(item => `<div class="debug-item">${item}</div>`).join('')}
+                    
+                    <h4>💡 Posibles Soluciones</h4>
+                    <div class="debug-item">
+                        <strong>Si ves "Failed to fetch":</strong><br>
+                        • Verifica que la URL del Apps Script sea correcta<br>
+                        • Asegúrate de que el script esté desplegado como "acceso público"<br>
+                        • Revisa que no haya errores en el código del Apps Script<br>
+                        • Intenta redesplegar el script con una nueva URL<br>
+                        • Verifica que las funciones doGet() y doPost() estén implementadas
+                    </div>
+                    <div class="debug-item">
+                        <strong>Si el script no responde:</strong><br>
+                        • Verifica los logs del Apps Script en Google Cloud Console<br>
+                        • Asegúrate de que la función doGet() o doPost() esté implementada<br>
+                        • Revisa los permisos de Google Sheets/Drive<br>
+                        • Verifica que el FOLDER_ID y SHEET_NAME sean correctos
+                    </div>
+                    <div class="debug-item">
+                        <strong>Para redesplegar el script:</strong><br>
+                        • Ve a script.google.com<br>
+                        • Abre tu proyecto<br>
+                        • Haz clic en "Implementar" > "Nueva implementación"<br>
+                        • Selecciona "Aplicación web"<br>
+                        • Cambia la versión a "Nueva"<br>
+                        • Asegúrate de que "Ejecutar como" sea "Yo"<br>
+                        • Y "Quién tiene acceso" sea "Cualquier usuario"<br>
+                        • Copia la nueva URL y úsala arriba
+                    </div>
+                `;
+
+                debugButton.disabled = false;
+            }
+
+            function displayFeedback(message, type) {
+                feedbackMessage.innerHTML = type === 'loading' ? 
+                    `<span class="spinner"></span>${message}` : message;
+                
+                feedbackMessage.className = `feedback ${type}`;
+                feedbackMessage.style.display = 'block';
+                
+                if (type !== 'loading') {
+                    setTimeout(() => {
+                        feedbackMessage.style.display = 'none';
+                    }, 5000);
+                }
+            }
+
+            // Auto-verificar estado cada 30 segundos
+            setInterval(checkScriptStatus, 30000);
+        });
+    </script>
+</body>
+</html>
