@@ -1,5 +1,5 @@
 // URL original de tu archivo JSON en Google Drive
-const JSON_URL_ORIGINAL = 'https://drive.google.com/uc?export=download&id=1HXkXhHbPj7RtPs-yv2Vnvr1rju54Imb0';
+const JSON_URL_ORIGINAL = 'https://drive.google.com/uc?export=download&id=15aaP6oO3MnEcJohJ3ENIpVoqzroYxlhy';
 
 // Proxies CORS disponibles (se probarán en orden)
 const CORS_PROXIES = [
