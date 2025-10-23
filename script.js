@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span>${selectedItem.Ubicacion || 'No especificada'}</span>
                         </div>
                         <div class="detail-item">
-                            <strong>🔢 ID:</strong>
+                            <strong>🔢 TAG GESTION:</strong>
                             <span>${selectedItem.ID_Item}</span>
                         </div>
                     </div>
