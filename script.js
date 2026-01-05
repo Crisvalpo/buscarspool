@@ -2,10 +2,13 @@
 const JSON_URL_ORIGINAL = 'https://drive.google.com/uc?export=download&id=15aaP6oO3MnEcJohJ3ENIpVoqzroYxlhy';
 
 // Proxies CORS disponibles (se probarán en orden)
+// Actualizado 2026-01 con servicios más confiables
 const CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?',
-    'https://cors.sh/'
+    'https://api.codetabs.com/v1/proxy?quest=',      // CodeTabs - alta confiabilidad
+    'https://proxy.cors.sh/',                         // CORS.sh Proxy - versión actualizada
+    'https://api.allorigins.win/raw?url=',           // AllOrigins - mantener como fallback
+    'https://corsproxy.io/?',                         // CORSProxy.io - mantener como fallback
+    'https://thingproxy.freeboard.io/fetch/'         // ThingProxy - alternativa adicional
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsContainer = document.getElementById('results-container');
     const loader = document.getElementById('loader');
     const clearButton = document.getElementById('clear-search');
-    
+
     let spoolsData = [];
     let filteredIds = [];
     let filteredSpools = [];
@@ -26,17 +29,17 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function processGoogleDriveUrl(url, type = 'image') {
         if (!url) return { viewUrl: '', downloadUrl: '', isValid: false };
-        
+
         // Extraer el ID del archivo
         let fileId = null;
-        
+
         // Diferentes patrones de URL de Google Drive
         const patterns = [
             /\/file\/d\/([a-zA-Z0-9_-]+)/,
             /[?&]id=([a-zA-Z0-9_-]+)/,
             /\/d\/([a-zA-Z0-9_-]+)/
         ];
-        
+
         for (const pattern of patterns) {
             const match = url.match(pattern);
             if (match) {
@@ -44,22 +47,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             }
         }
-        
+
         if (!fileId) {
             return { viewUrl: url, downloadUrl: url, isValid: false };
         }
-        
+
         // URLs para diferentes propósitos
         const viewUrl = `https://lh3.googleusercontent.com/d/${fileId}=s1000`; // Para imágenes
         const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`; // Para descargar
         const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`; // Para preview
-        
-        return { 
-            viewUrl, 
-            downloadUrl, 
+
+        return {
+            viewUrl,
+            downloadUrl,
             embedUrl,
             fileId,
-            isValid: true 
+            isValid: true
         };
     }
 
@@ -82,12 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
-        
+
         // Prevenir scroll del body cuando el modal está abierto
         document.body.style.overflow = 'hidden';
-        
+
         // Remover modal al hacer click fuera o ESC
         modal.addEventListener('click', (e) => {
             if (e.target === modal || e.target.className === 'modal-backdrop') {
@@ -95,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.style.overflow = 'auto';
             }
         });
-        
+
         document.addEventListener('keydown', function escapeHandler(e) {
             if (e.key === 'Escape') {
                 modal.remove();
@@ -111,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchData() {
         loader.style.display = 'block';
         resultsContainer.style.display = 'none';
-        
+
         // Intentar primero sin proxy
         try {
             console.log('🔄 Intentando acceso directo...');
@@ -119,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'GET',
                 mode: 'cors'
             });
-            
+
             if (directResponse.ok) {
                 spoolsData = await directResponse.json();
                 initializeSearchInputs();
@@ -129,13 +132,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (directError) {
             console.log('❌ Acceso directo falló, probando proxies...');
         }
-        
+
         // Si el acceso directo falla, probar con proxies
         for (let i = 0; i < CORS_PROXIES.length; i++) {
             try {
                 const proxyUrl = CORS_PROXIES[i] + encodeURIComponent(JSON_URL_ORIGINAL + '&t=' + new Date().getTime());
                 console.log(`🔄 Intentando proxy ${i + 1}:`, CORS_PROXIES[i]);
-                
+
                 const response = await fetch(proxyUrl, {
                     method: 'GET',
                     headers: {
@@ -144,31 +147,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     signal: AbortSignal.timeout(15000) // 15 segundos timeout
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const responseText = await response.text();
-                
+
                 try {
                     spoolsData = JSON.parse(responseText);
                 } catch (parseError) {
                     throw new Error('La respuesta no es JSON válido');
                 }
-                
+
                 if (!Array.isArray(spoolsData) || spoolsData.length === 0) {
                     throw new Error('Los datos no tienen el formato esperado');
                 }
-                
+
                 initializeSearchInputs();
                 console.log(`✅ Proxy ${i + 1} funcionó correctamente`);
                 console.log(`📊 ${spoolsData.length} registros cargados`);
                 return;
-                
+
             } catch (error) {
                 console.warn(`❌ Proxy ${i + 1} falló:`, error.message);
-                
+
                 if (i === CORS_PROXIES.length - 1) {
                     showError(`Todos los métodos fallaron. Último error: ${error.message}`);
                 }
@@ -186,10 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         console.log('🔍 Inicializando búsqueda con', spoolsData.length, 'registros');
-        
+
         // Limpiar los inputs
         clearInputs();
-        
+
         // Mostrar mensaje de éxito temporal
         showSuccessMessage(`✅ ${spoolsData.length} registros cargados. ¡Puedes empezar a buscar!`);
     }
@@ -204,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         resultsContainer.style.display = 'block';
-        
+
         setTimeout(() => {
             resultsContainer.style.display = 'none';
         }, 3000);
@@ -230,12 +233,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        filteredIds = spoolsData.filter(item => 
+        filteredIds = spoolsData.filter(item =>
             item.ID_Item && item.ID_Item.toString().toLowerCase().includes(query.toLowerCase())
         ).slice(0, 8); // Menos sugerencias en móvil
 
         if (filteredIds.length > 0) {
-            idSuggestions.innerHTML = filteredIds.map(item => 
+            idSuggestions.innerHTML = filteredIds.map(item =>
                 `<div class="suggestion-item" data-id="${item.ID_Item}">
                     <div>
                         <strong>${item.ID_Item}</strong><br>
@@ -259,12 +262,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        filteredSpools = spoolsData.filter(item => 
+        filteredSpools = spoolsData.filter(item =>
             item.Spool && item.Spool.toString().toLowerCase().includes(query.toLowerCase())
         ).slice(0, 8); // Menos sugerencias en móvil
 
         if (filteredSpools.length > 0) {
-            spoolSuggestions.innerHTML = filteredSpools.map(item => 
+            spoolSuggestions.innerHTML = filteredSpools.map(item =>
                 `<div class="suggestion-item" data-id="${item.ID_Item}">
                     <div>
                         <strong>${item.Spool}</strong><br>
@@ -292,25 +295,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedItem) {
             console.log('📋 Mostrando item:', selectedItem);
-            
+
             // Procesar URLs para imagen principal y imagen origen
             const fotoInfo = processGoogleDriveUrl(selectedItem.Foto_URL, 'image');
             const fotoOrigenInfo = processGoogleDriveUrl(selectedItem.Foto_URL_Origen, 'image');
             const planoInfo = processGoogleDriveUrl(selectedItem.Plano_URL, 'pdf');
-            
+
             console.log('🖼️ Info foto:', fotoInfo);
             console.log('🖼️ Info foto origen:', fotoOrigenInfo);
             console.log('📄 Info plano:', planoInfo);
-            
+
             // HTML para la foto principal (clickable si hay imagen origen)
             let fotoHtml = '';
             if (fotoInfo.isValid) {
                 const clickableClass = fotoOrigenInfo.isValid ? 'clickable-image' : '';
-                const clickHandler = fotoOrigenInfo.isValid ? 
+                const clickHandler = fotoOrigenInfo.isValid ?
                     `onclick="openImageModal('${fotoOrigenInfo.viewUrl}', 'Imagen Original - ${selectedItem.Spool || 'Spool'}')"` : '';
-                const clickHint = fotoOrigenInfo.isValid ? 
+                const clickHint = fotoOrigenInfo.isValid ?
                     '<div class="click-hint">🔍 Click para ver imagen original</div>' : '';
-                
+
                 fotoHtml = `
                     <div class="image-wrapper">
                         <img src="${fotoInfo.viewUrl}" 
@@ -328,9 +331,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 fotoHtml = `<div class="error-message">📷 URL de imagen no válida</div>`;
             }
-            
+
             // HTML para el plano (botón de descarga)
-            const planoHtml = planoInfo.isValid ? 
+            const planoHtml = planoInfo.isValid ?
                 `<div class="plan-actions">
                      <a href="${planoInfo.downloadUrl}" class="btn-download" target="_blank" rel="noopener">
                          📥 Descargar PDF
@@ -371,22 +374,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${planoHtml}
                 </div>
             `;
-            
+
             resultsContainer.style.display = 'block';
-            
+
             // Hacer disponible la función openImageModal globalmente para este contexto
             window.openImageModal = openImageModal;
-            
+
             // Scroll suave al resultado en móviles
             if (window.innerWidth <= 768) {
                 setTimeout(() => {
-                    resultsContainer.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
+                    resultsContainer.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
                     });
                 }, 100);
             }
-            
+
         } else {
             resultsContainer.innerHTML = `
                 <div class="error-message">
@@ -441,11 +444,11 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(searchTimeout);
         spoolInput.value = '';
         spoolSuggestions.style.display = 'none';
-        
+
         searchTimeout = setTimeout(() => {
             filterIds(e.target.value);
         }, 300); // Debounce para mejor performance
-        
+
         if (!e.target.value) {
             resultsContainer.style.display = 'none';
         }
@@ -455,11 +458,11 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(searchTimeout);
         idInput.value = '';
         idSuggestions.style.display = 'none';
-        
+
         searchTimeout = setTimeout(() => {
             filterSpools(e.target.value);
         }, 300); // Debounce para mejor performance
-        
+
         if (!e.target.value) {
             resultsContainer.style.display = 'none';
         }
@@ -469,10 +472,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
         idInput.addEventListener('focus', preventZoom);
         spoolInput.addEventListener('focus', preventZoom);
-        
+
         function preventZoom() {
             document.querySelector('meta[name=viewport]').setAttribute(
-                'content', 
+                'content',
                 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'
             );
         }
@@ -483,11 +486,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.suggestion-item') && e.target.closest('.suggestion-item').dataset.id) {
             const selectedId = e.target.closest('.suggestion-item').dataset.id;
             displayResult(selectedId);
-            
+
             // Ocultar sugerencias
             idSuggestions.style.display = 'none';
             spoolSuggestions.style.display = 'none';
-            
+
             // Actualizar el input correspondiente
             if (e.target.closest('#id-suggestions')) {
                 idInput.value = selectedId;
@@ -510,12 +513,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Manejo de teclado virtual en móviles
     let initialViewportHeight = window.innerHeight;
-    
+
     window.addEventListener('resize', () => {
         // Detectar si el teclado virtual está abierto
         const currentHeight = window.innerHeight;
         const keyboardOpen = currentHeight < initialViewportHeight * 0.8;
-        
+
         if (keyboardOpen) {
             document.body.style.height = `${currentHeight}px`;
             // Reducir altura de sugerencias cuando el teclado está abierto
@@ -530,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
     idSuggestions.addEventListener('touchmove', (e) => {
         e.stopPropagation();
     }, { passive: true });
-    
+
     spoolSuggestions.addEventListener('touchmove', (e) => {
         e.stopPropagation();
     }, { passive: true });
