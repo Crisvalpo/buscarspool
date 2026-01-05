@@ -1,14 +1,19 @@
-// URL original de tu archivo JSON en Google Drive
-const JSON_URL_ORIGINAL = 'https://drive.google.com/uc?export=download&id=15aaP6oO3MnEcJohJ3ENIpVoqzroYxlhy';
+// ID del archivo en Google Drive
+const GOOGLE_DRIVE_FILE_ID = '15aaP6oO3MnEcJohJ3ENIpVoqzroYxlhy';
 
-// Proxies CORS disponibles (se probarán en orden)
-// Actualizado 2026-01 con servicios más confiables
+// Múltiples estrategias de URLs de Google Drive (se probarán en orden)
+const GOOGLE_DRIVE_URLS = [
+    `https://docs.google.com/uc?export=download&id=${GOOGLE_DRIVE_FILE_ID}`,
+    `https://drive.google.com/uc?export=download&id=${GOOGLE_DRIVE_FILE_ID}&confirm=t`,
+    `https://www.googleapis.com/drive/v3/files/${GOOGLE_DRIVE_FILE_ID}?alt=media&key=AIzaSyDummy`, // Fallback
+    `https://drive.usercontent.google.com/download?id=${GOOGLE_DRIVE_FILE_ID}&export=download&confirm=t`
+];
+
+// Proxies CORS como fallback (se usarán con cada URL de Google Drive)
 const CORS_PROXIES = [
-    'https://api.codetabs.com/v1/proxy?quest=',      // CodeTabs - alta confiabilidad
-    'https://proxy.cors.sh/',                         // CORS.sh Proxy - versión actualizada
-    'https://api.allorigins.win/raw?url=',           // AllOrigins - mantener como fallback
-    'https://corsproxy.io/?',                         // CORSProxy.io - mantener como fallback
-    'https://thingproxy.freeboard.io/fetch/'         // ThingProxy - alternativa adicional
+    'https://api.codetabs.com/v1/proxy?quest=',
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?'
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -109,74 +114,105 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Carga los datos usando proxies CORS
+     * Carga los datos usando múltiples estrategias de Google Drive
      */
     async function fetchData() {
         loader.style.display = 'block';
         resultsContainer.style.display = 'none';
 
-        // Intentar primero sin proxy
-        try {
-            console.log('🔄 Intentando acceso directo...');
-            const directResponse = await fetch(`${JSON_URL_ORIGINAL}&t=${new Date().getTime()}`, {
-                method: 'GET',
-                mode: 'cors'
-            });
+        const timestamp = new Date().getTime();
+        let attemptNumber = 0;
+        const allErrors = [];
 
-            if (directResponse.ok) {
-                spoolsData = await directResponse.json();
-                initializeSearchInputs();
-                console.log('✅ Acceso directo exitoso');
-                return;
-            }
-        } catch (directError) {
-            console.log('❌ Acceso directo falló, probando proxies...');
-        }
-
-        // Si el acceso directo falla, probar con proxies
-        for (let i = 0; i < CORS_PROXIES.length; i++) {
+        // ESTRATEGIA 1: Probar todas las URLs de Google Drive SIN proxy
+        console.log('� ESTRATEGIA 1: Intentando acceso directo a Google Drive...');
+        for (let i = 0; i < GOOGLE_DRIVE_URLS.length; i++) {
             try {
-                const proxyUrl = CORS_PROXIES[i] + encodeURIComponent(JSON_URL_ORIGINAL + '&t=' + new Date().getTime());
-                console.log(`🔄 Intentando proxy ${i + 1}:`, CORS_PROXIES[i]);
+                attemptNumber++;
+                const url = `${GOOGLE_DRIVE_URLS[i]}&t=${timestamp}`;
+                console.log(`🔄 Intento ${attemptNumber} - URL directa ${i + 1}/${GOOGLE_DRIVE_URLS.length}`);
 
-                const response = await fetch(proxyUrl, {
+                const response = await fetch(url, {
                     method: 'GET',
+                    mode: 'cors',
                     headers: {
                         'Accept': 'application/json',
-                        'Content-Type': 'application/json',
                     },
-                    signal: AbortSignal.timeout(15000) // 15 segundos timeout
+                    signal: AbortSignal.timeout(10000)
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (Array.isArray(data) && data.length > 0) {
+                        spoolsData = data;
+                        initializeSearchInputs();
+                        console.log(`✅ Éxito con URL directa ${i + 1}`);
+                        console.log(`📊 ${spoolsData.length} registros cargados`);
+                        return;
+                    }
                 }
-
-                const responseText = await response.text();
-
-                try {
-                    spoolsData = JSON.parse(responseText);
-                } catch (parseError) {
-                    throw new Error('La respuesta no es JSON válido');
-                }
-
-                if (!Array.isArray(spoolsData) || spoolsData.length === 0) {
-                    throw new Error('Los datos no tienen el formato esperado');
-                }
-
-                initializeSearchInputs();
-                console.log(`✅ Proxy ${i + 1} funcionó correctamente`);
-                console.log(`📊 ${spoolsData.length} registros cargados`);
-                return;
-
             } catch (error) {
-                console.warn(`❌ Proxy ${i + 1} falló:`, error.message);
+                allErrors.push(`URL ${i + 1} directo: ${error.message}`);
+                console.warn(`❌ URL ${i + 1} directo falló:`, error.message);
+            }
+        }
 
-                if (i === CORS_PROXIES.length - 1) {
-                    showError(`Todos los métodos fallaron. Último error: ${error.message}`);
+        // ESTRATEGIA 2: Probar combinaciones de URLs de Google Drive CON proxies CORS
+        console.log('🚀 ESTRATEGIA 2: Intentando con proxies CORS...');
+        for (let urlIndex = 0; urlIndex < GOOGLE_DRIVE_URLS.length; urlIndex++) {
+            for (let proxyIndex = 0; proxyIndex < CORS_PROXIES.length; proxyIndex++) {
+                try {
+                    attemptNumber++;
+                    const baseUrl = `${GOOGLE_DRIVE_URLS[urlIndex]}&t=${timestamp}`;
+                    const proxyUrl = CORS_PROXIES[proxyIndex] + encodeURIComponent(baseUrl);
+
+                    console.log(`🔄 Intento ${attemptNumber} - URL ${urlIndex + 1} + Proxy ${proxyIndex + 1}`);
+
+                    const response = await fetch(proxyUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                        },
+                        signal: AbortSignal.timeout(15000)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const responseText = await response.text();
+                    let data;
+
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (parseError) {
+                        throw new Error('Respuesta no es JSON válido');
+                    }
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        throw new Error('Datos vacíos o formato incorrecto');
+                    }
+
+                    spoolsData = data;
+                    initializeSearchInputs();
+                    console.log(`✅ Éxito con URL ${urlIndex + 1} + Proxy ${proxyIndex + 1}`);
+                    console.log(`📊 ${spoolsData.length} registros cargados`);
+                    return;
+
+                } catch (error) {
+                    allErrors.push(`URL ${urlIndex + 1} + Proxy ${proxyIndex + 1}: ${error.message}`);
+                    console.warn(`❌ URL ${urlIndex + 1} + Proxy ${proxyIndex + 1} falló:`, error.message);
                 }
             }
         }
+
+        // Si llegamos aquí, todos los intentos fallaron
+        console.error('❌ TODOS LOS INTENTOS FALLARON');
+        console.error('Errores:', allErrors);
+        showError(`Todos los métodos fallaron después de ${attemptNumber} intentos. 
+                    El archivo de Google Drive puede estar privado o Google está bloqueando el acceso.
+                    <br><br><strong>Último error:</strong> ${allErrors[allErrors.length - 1]}`);
     }
 
     /**
